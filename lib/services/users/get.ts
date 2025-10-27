@@ -1,6 +1,10 @@
+"use server"
+
 import { eq, and } from 'drizzle-orm';
 import { db } from '@/lib/database/drizzle';
 import { usersTable } from '@/lib/database/schema/users';
+import { verifyJWT } from './utils';
+import { getAccessToken } from '../shared/utils';
 
 export async function getUserById(id: number) {
   try {
@@ -39,12 +43,21 @@ export async function getUserById(id: number) {
 
     return {
       success: true,
-      user,
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        phone_number: user.phone_number,
+        role: user.role,
+        department: user.department,
+        assembly_ward: user.assembly_ward,
+        avatar: user.profile_picture_url,
+      },
     };
   } catch (error) {
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Failed to get user',
+      error: error instanceof Error ? error.message : 'Failed to get current user',
     };
   }
 }
@@ -116,6 +129,52 @@ export async function getUsers(options?: {
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to get users',
+    };
+  }
+}
+
+export async function getCurrentUser() {
+  try {
+
+    var token =await getAccessToken()
+    if (!token) {
+      return {
+        success: false,
+        error: 'User not found',
+      };
+    }
+    // Verify and decode the JWT token to get user information
+    const decodedToken = await verifyJWT(token);
+
+    // Extract user ID from the decoded token
+    const userId = decodedToken.userId;
+
+    const user = await getUserById(userId);
+
+    if (!user.success || !user.user) {
+      return {
+        success: false,
+        error: user.error || 'User not found',
+      };
+    }
+
+    return {
+      success: true,
+      user: {
+        id: user.user.id,
+        name: user.user.name,
+        email: user.user.email,
+        phone_number: user.user.phone_number,
+        role: user.user.role,
+        department: user.user.department,
+        assembly_ward: user.user.assembly_ward,
+        avatar: user.user.avatar,
+      },
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to get current user',
     };
   }
 }

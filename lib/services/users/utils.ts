@@ -1,3 +1,4 @@
+
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { z } from 'zod';
@@ -23,7 +24,7 @@ export async function verifyPassword(password: string, hash: string): Promise<bo
 }
 
 // JWT utilities
-export function generateJWT(payload: { userId: number; email: string; role: string; name: string }): string {
+export async function generateJWT(payload: { userId: number; email: string; role: string; name: string }): Promise<string> {
   const secret = process.env.JWT_SECRET;
   if (!secret) throw new Error('JWT_SECRET not configured');
 
@@ -32,6 +33,22 @@ export function generateJWT(payload: { userId: number; email: string; role: stri
     issuer: 'revenue-system',
     audience: 'revenue-system-users',
   });
+}
+
+export async function verifyJWT(token: string): Promise<{ userId: number; email: string; role: string; name: string }> {
+  const secret = process.env.JWT_SECRET;
+  if (!secret) throw new Error('JWT_SECRET not configured');
+
+  try {
+    const decoded = jwt.verify(token, secret, {
+      issuer: 'revenue-system',
+      audience: 'revenue-system-users',
+    }) as { userId: number; email: string; role: string; name: string };
+
+    return decoded;
+  } catch (error) {
+    throw new Error('Invalid or expired token');
+  }
 }
 
 // Validation schemas
@@ -74,15 +91,15 @@ export async function findUserByPhone(phone: string) {
 }
 
 // Response helpers
-export function successResponse<T>(data: T): ServiceResponse<T> {
+export async function successResponse<T>(data: T): Promise<ServiceResponse<T>> {
   return { success: true, data };
 }
 
-export function errorResponse(error: string, details?: any): ServiceResponse {
+export async function errorResponse(error: string, details?: any): Promise<ServiceResponse> {
   return { success: false, error, details };
 }
 
-export function validationErrorResponse(error: z.ZodError): ServiceResponse {
+export async function validationErrorResponse(error: z.ZodError): Promise<ServiceResponse> {
   return {
     success: false,
     error: 'Invalid input data',
@@ -91,9 +108,9 @@ export function validationErrorResponse(error: z.ZodError): ServiceResponse {
 }
 
 // Common error handler
-export function handleServiceError(error: unknown): ServiceResponse {
+export async function handleServiceError(error: unknown): Promise<ServiceResponse> {
   if (error instanceof z.ZodError) {
-    return validationErrorResponse(error);
+    return await validationErrorResponse(error);
   }
-  return errorResponse(error instanceof Error ? error.message : 'An unexpected error occurred');
+  return await errorResponse(error instanceof Error ? error.message : 'An unexpected error occurred');
 }

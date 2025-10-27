@@ -5,17 +5,12 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { createUser } from "@/lib/services/users/post";
-import { createAssembly } from "@/lib/services/assemblies/post";
-import { getUsers } from "@/lib/services/users/get";
-import { getAssemblies } from "@/lib/services/assemblies/get";
+import { checkSystemStatus, registerSystem } from "@/lib/services/users/actions";
+import { RegisterLayout } from "@/components/features/users/register-layout";
+import { RegisterUser, type AdminDetailsForm } from "@/components/features/users/register-user";
+import { RegisterAssembly, type AssemblyDetailsForm } from "@/components/features/users/register-assembly";
 
-// Form validation schema
 const registrationSchema = z.object({
   // User details
   name: z.string().min(2, "Name must be at least 2 characters"),
@@ -38,25 +33,54 @@ const registrationSchema = z.object({
 
 type RegistrationForm = z.infer<typeof registrationSchema>;
 
+// Create separate schemas for each step
+const adminDetailsSchema = z.object({
+  name: z.string().min(2, "Name must be at least 2 characters"),
+  phone_number: z.string().min(10, "Phone number must be at least 10 characters"),
+  email: z.string().email("Invalid email address"),
+  password: z.string().min(8, "Password must be at least 8 characters"),
+});
+
+const assemblyDetailsSchema = z.object({
+  assembly_code: z.string().min(2, "Assembly code must be at least 2 characters"),
+  assembly_name: z.string().min(2, "Assembly name must be at least 2 characters"),
+  district: z.string().optional(),
+  region: z.string().optional(),
+  population: z.number().int().min(0).optional(),
+  area_sq_km: z.number().int().min(0).optional(),
+  address: z.string().optional(),
+  phone: z.string().optional(),
+  email_assembly: z.string().email("Invalid email address").optional(),
+  collection_target: z.string().optional(),
+});
+
 export default function RegisterPage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [isChecking, setIsChecking] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const [currentStep, setCurrentStep] = useState(1);
 
-  const form = useForm<RegistrationForm>({
-    resolver: zodResolver(registrationSchema),
+  // Separate forms for each step
+  const adminForm = useForm<AdminDetailsForm>({
+    resolver: zodResolver(adminDetailsSchema),
     defaultValues: {
       name: "",
       phone_number: "",
       email: "",
       password: "",
+    },
+  });
+
+  const assemblyForm = useForm<AssemblyDetailsForm>({
+    resolver: zodResolver(assemblyDetailsSchema),
+    defaultValues: {
       assembly_code: "",
       assembly_name: "",
       district: "",
       region: "",
-      population: undefined,
-      area_sq_km: undefined,
+      population: 0,
+      area_sq_km: 0,
       address: "",
       phone: "",
       email_assembly: "",
@@ -65,25 +89,19 @@ export default function RegisterPage() {
   });
 
   useEffect(() => {
-    checkSystemStatus();
+    checkStatus();
   }, []);
 
-  const checkSystemStatus = async () => {
+  const checkStatus = async () => {
     try {
-      // Check if admin users exist
-      const usersResult = await getUsers({ role: "admin" });
-      const hasAdmins = usersResult.success && usersResult.users && usersResult.users.length > 0;
-
-      // Check if assemblies exist
-      const assembliesResult = await getAssemblies();
-      const hasAssemblies = assembliesResult.success && assembliesResult.data?.assemblies && assembliesResult.data.assemblies.length > 0;
+      const status = await checkSystemStatus();
 
       // Show registration form only if no admins and no assemblies exist
-      setShowForm(!hasAdmins && !hasAssemblies);
+      setShowForm(status.canRegister);
 
-      // If system is already initialized, redirect to dashboard
-      if (hasAdmins || hasAssemblies) {
-        router.push("/dashboard");
+      // If system is already initialized, redirect to home page
+      if (!status.canRegister) {
+        router.push("/");
       }
     } catch (error) {
       console.error("Error checking system status:", error);
@@ -94,43 +112,45 @@ export default function RegisterPage() {
     }
   };
 
-  const onSubmit = async (data: RegistrationForm) => {
+  const nextStep = () => setCurrentStep(2);
+  const prevStep = () => setCurrentStep(1);
+
+  const onAdminSubmit = async (data: AdminDetailsForm) => {
+    // Validate admin form and move to next step
+    const isValid = await adminForm.trigger();
+    if (isValid) {
+      nextStep();
+    }
+  };
+
+  const onAssemblySubmit = async (data: AssemblyDetailsForm) => {
     setIsLoading(true);
     try {
-      // Create assembly first
-      const assemblyResult = await createAssembly({
-        code: data.assembly_code,
-        name: data.assembly_name,
-        district: data.district,
-        region: data.region,
-        population: data.population,
-        area_sq_km: data.area_sq_km,
-        address: data.address,
-        phone: data.phone,
-        email: data.email_assembly,
-        collection_target: data.collection_target,
+      const adminData = adminForm.getValues();
+      const assemblyData = assemblyForm.getValues();
+
+      // Prepend +233 to phone numbers
+      const formattedAdminData = {
+        ...adminData,
+        phone_number: `233${adminData.phone_number.replace(/^\+?233/, '')}`
+      };
+
+      const formattedAssemblyData = {
+        ...assemblyData,
+        phone: assemblyData.phone ? `233${assemblyData.phone.replace(/^\+?233/, '')}` : undefined
+      };
+
+      const result = await registerSystem({
+        ...formattedAdminData,
+        ...formattedAssemblyData,
       });
 
-      if (!assemblyResult.success) {
-        throw new Error(assemblyResult.error || "Failed to create assembly");
+      if (!result.success) {
+        throw new Error(result.error || "Registration failed");
       }
 
-      // Create user as admin
-      const userResult = await createUser({
-        name: data.name,
-        phone_number: data.phone_number,
-        email: data.email,
-        password: data.password,
-        role: "admin",
-        assembly_ward: data.assembly_name, // Link user to the assembly
-      });
-
-      if (!userResult.success) {
-        throw new Error(userResult.error || "Failed to create admin user");
-      }
-
-      // Redirect to dashboard on success
-      router.push("/dashboard");
+      // Redirect to home page on success
+      router.push("/");
     } catch (error) {
       console.error("Registration error:", error);
       // In a real app, you'd show a toast notification here
@@ -142,303 +162,86 @@ export default function RegisterPage() {
 
   if (isChecking) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <RegisterLayout>
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
           <p className="mt-2 text-muted-foreground">Checking system status...</p>
         </div>
-      </div>
+      </RegisterLayout>
     );
   }
 
   if (!showForm) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Card className="w-full max-w-md">
-          <CardHeader className="text-center">
-            <CardTitle>System Already Initialized</CardTitle>
-            <CardDescription>
-              The system has already been set up with administrators and assemblies.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button onClick={() => router.push("/dashboard")} className="w-full">
-              Go to Dashboard
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
+      <RegisterLayout>
+        <div className="text-center space-y-4">
+          <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto">
+            <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <h2 className="text-2xl font-semibold text-gray-900">System Already Initialized</h2>
+          <p className="text-gray-600">
+            The system has already been set up with administrators and assemblies.
+          </p>
+          <Button onClick={() => router.push("/")} className="mt-4">
+            Go to Home
+          </Button>
+        </div>
+      </RegisterLayout>
     );
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4">
-      <Card className="w-full max-w-2xl">
-        <CardHeader className="text-center">
-          <CardTitle className="text-2xl">Initialize Revenue System</CardTitle>
-          <CardDescription>
+    <RegisterLayout>
+      <div className="space-y-6">
+        {/* Stepper */}
+        <div className="text-center">
+          <h2 className="text-3xl font-bold text-gray-900 mb-2">Initialize Revenue System</h2>
+          <p className="text-gray-600">
             Create the first administrator account and assembly for your revenue collection system
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              {/* Administrator Details */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold">Administrator Details</h3>
+          </p>
+        </div>
+        
+        <div className="flex items-center justify-center space-x-4 mb-8">
+          <div className="flex items-center space-x-2">
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold ${
+              currentStep >= 1 ? 'bg-primary text-primary-foreground' : 'bg-gray-200 text-gray-600'
+            }`}>
+              1
+            </div>
+            <span className={`text-sm font-medium ${
+              currentStep >= 1 ? 'text-gray-900' : 'text-gray-600'
+            }`}>Administrator Details</span>
+          </div>
+          <div className={`w-8 h-px ${currentStep > 1 ? 'bg-primary' : 'bg-gray-300'}`}></div>
+          <div className="flex items-center space-x-2">
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold ${
+              currentStep >= 2 ? 'bg-primary text-primary-foreground' : 'bg-gray-200 text-gray-600'
+            }`}>
+              2
+            </div>
+            <span className={`text-sm font-medium ${
+              currentStep >= 2 ? 'text-gray-900' : 'text-gray-600'
+            }`}>Assembly Details</span>
+          </div>
+        </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="name"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Full Name</FormLabel>
-                        <FormControl>
-                          <Input placeholder="John Doe" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+      
 
-                  <FormField
-                    control={form.control}
-                    name="phone_number"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Phone Number</FormLabel>
-                        <FormControl>
-                          <Input placeholder="+233-123-456789" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
+        {currentStep === 1 && (
+          <RegisterUser adminForm={adminForm} onSubmit={onAdminSubmit} />
+        )}
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="email"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Email</FormLabel>
-                        <FormControl>
-                          <Input type="email" placeholder="admin@example.com" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="password"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Password</FormLabel>
-                        <FormControl>
-                          <Input type="password" placeholder="Minimum 8 characters" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-              </div>
-
-              {/* Assembly Details */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold">Assembly Details</h3>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="assembly_code"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Assembly Code</FormLabel>
-                        <FormControl>
-                          <Input placeholder="ASM001" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="assembly_name"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Assembly Name</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Central Assembly" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="district"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>District</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Accra Metropolitan" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="region"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Region</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select region" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="greater_accra">Greater Accra</SelectItem>
-                            <SelectItem value="ashanti">Ashanti</SelectItem>
-                            <SelectItem value="central">Central</SelectItem>
-                            <SelectItem value="western">Western</SelectItem>
-                            <SelectItem value="eastern">Eastern</SelectItem>
-                            <SelectItem value="volta">Volta</SelectItem>
-                            <SelectItem value="northern">Northern</SelectItem>
-                            <SelectItem value="upper_east">Upper East</SelectItem>
-                            <SelectItem value="upper_west">Upper West</SelectItem>
-                            <SelectItem value="oti">Oti</SelectItem>
-                            <SelectItem value="north_east">North East</SelectItem>
-                            <SelectItem value="savannah">Savannah</SelectItem>
-                            <SelectItem value="bono">Bono</SelectItem>
-                            <SelectItem value="bono_east">Bono East</SelectItem>
-                            <SelectItem value="ahafo">Ahafo</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="population"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Population</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="number"
-                            placeholder="50000"
-                            {...field}
-                            onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="area_sq_km"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Area (sq km)</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="number"
-                            placeholder="25"
-                            {...field}
-                            onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="phone"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Assembly Phone</FormLabel>
-                        <FormControl>
-                          <Input placeholder="+233-123-456789" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="email_assembly"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Assembly Email</FormLabel>
-                        <FormControl>
-                          <Input type="email" placeholder="assembly@example.com" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
-                <FormField
-                  control={form.control}
-                  name="address"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Address</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Physical address of the assembly" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="collection_target"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Collection Target</FormLabel>
-                      <FormControl>
-                        <Input placeholder="GHS 500,000/month" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-
-              <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? "Initializing System..." : "Initialize Revenue System"}
-              </Button>
-            </form>
-          </Form>
-        </CardContent>
-      </Card>
-    </div>
+        {currentStep === 2 && (
+          <RegisterAssembly
+            assemblyForm={assemblyForm}
+            onSubmit={onAssemblySubmit}
+            onBack={prevStep}
+            isLoading={isLoading}
+          />
+        )}
+      </div>
+    </RegisterLayout>
   );
 }

@@ -1,5 +1,6 @@
 import { integer, pgTable, varchar, timestamp, decimal, text, pgEnum, boolean, serial } from "drizzle-orm/pg-core";
 import { usersTable } from "./users";
+import { revenueSourcesTable } from "./revenue-sources";
 
 // Enums for collections
 export const collectionStatusEnum = pgEnum('collection_status', ['pending', 'completed', 'cancelled', 'refunded']);
@@ -28,10 +29,8 @@ export const collectionsTable = pgTable("collections", {
   status: collectionStatusEnum().notNull().default('pending'),
   notes: text(),
 
-  // Revenue source (market, permits, property, etc.)
-  revenue_source: varchar({ length: 255 }),
-  category: varchar({ length: 255 }),
-  subcategory: varchar({ length: 255 }),
+  // Revenue source (reference to revenue_sources table)
+  revenue_source_id: integer().references(() => revenueSourcesTable.id),
 
   // Location and assembly info
   assembly_ward: varchar({ length: 255 }),

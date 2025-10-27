@@ -24,10 +24,10 @@ export async function createUser(input: z.infer<typeof createUserSchema>): Promi
 
     // Check for existing users
     const existingEmail = await findUserByEmail(validatedData.email);
-    if (existingEmail) return errorResponse('User with this email already exists');
+    if (existingEmail) return await errorResponse('User with this email already exists');
 
     const existingPhone = await findUserByPhone(validatedData.phone_number);
-    if (existingPhone) return errorResponse('User with this phone number already exists');
+    if (existingPhone) return await errorResponse('User with this phone number already exists');
 
     // Create user
     const hashedPassword = await hashPassword(validatedData.password);
@@ -58,9 +58,9 @@ export async function createUser(input: z.infer<typeof createUserSchema>): Promi
         created_at: usersTable.created_at,
       });
 
-    return successResponse({ user: newUser });
+    return await successResponse({ user: newUser });
   } catch (error) {
-    return handleServiceError(error);
+    return await handleServiceError(error);
   }
 }
 
@@ -70,12 +70,12 @@ export async function authorizeUser(input: z.infer<typeof authorizeUserSchema>):
 
     // Find and validate user
     const user = await findUserByEmail(validatedData.email);
-    if (!user) return errorResponse('Invalid email or password');
-    if (user.status !== 'active') return errorResponse('Account is not active');
+    if (!user) return await errorResponse('Invalid email or password');
+    if (user.status !== 'active') return await errorResponse('Account is not active');
 
     // Verify password
     const isValidPassword = await verifyPassword(validatedData.password, user.password);
-    if (!isValidPassword) return errorResponse('Invalid email or password');
+    if (!isValidPassword) return await errorResponse('Invalid email or password');
 
     // Update last login
     await db
@@ -84,15 +84,26 @@ export async function authorizeUser(input: z.infer<typeof authorizeUserSchema>):
       .where(eq(usersTable.id, user.id));
 
     // Generate token
-    const token = generateJWT({
+    const token = await generateJWT({
       userId: user.id,
       email: user.email,
       role: user.role,
       name: user.name,
     });
 
-    return successResponse({
-      token,
+    // Automatically save token to secure httpOnly cookie
+    const { cookies } = await import('next/headers');
+    const cookieStore = await cookies();
+    cookieStore.set('authToken', token, {
+      httpOnly: true, // Prevents client-side access
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 60 * 60 * 24, // 24 hours
+      path: '/',
+    });
+
+    return await successResponse({
+      message: 'Login successful',
       user: {
         id: user.id,
         name: user.name,
@@ -105,6 +116,6 @@ export async function authorizeUser(input: z.infer<typeof authorizeUserSchema>):
       },
     });
   } catch (error) {
-    return handleServiceError(error);
+    return await handleServiceError(error);
   }
 }
