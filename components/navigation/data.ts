@@ -26,10 +26,23 @@ export const menuItems = [
           url: "/dashboard/collections/sources",
           description: "Market, Permits, Property, etc."
         },
+      ]
+    },
+    {
+      title: "Reconciliation",
+      icon: BarChart3,
+      items: [
         {
-          title: "Receipts",
-          url: "/dashboard/receipts",
-          description: "View or download payment receipts"
+          title: "Reconciliation Records",
+          url: "/dashboard/reconciliation/reconcile",
+        },
+        {
+          title: "Statements",
+          url: "/dashboard/reconciliation/statements",
+        },
+        {
+          title: "Reconciliation Stats",
+          url: "/dashboard/reconciliation/stats",
         },
       ]
     },
@@ -48,28 +61,6 @@ export const menuItems = [
         {
           title: "Sanitation / Property Fees",
           url: "/dashboard/permits/sanitation",
-        },
-      ]
-    },
-    {
-      title: "Reconciliation",
-      icon: BarChart3,
-      items: [
-        {
-          title: "Pending Reconciliation",
-          url: "/dashboard/reconciliation/pending",
-        },
-        {
-          title: "Bank Deposits / MoMo Statements",
-          url: "/dashboard/reconciliation/statements",
-        },
-        {
-          title: "Discrepancy Report",
-          url: "/dashboard/reconciliation/discrepancy",
-        },
-        {
-          title: "Reconciled Records",
-          url: "/dashboard/reconciliation/records",
         },
       ]
     },

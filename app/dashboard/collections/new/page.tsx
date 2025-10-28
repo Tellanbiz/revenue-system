@@ -318,8 +318,6 @@ export default function NewCollectionPage() {
               </div>
             </CardContent>
           </Card>
-
-   
         </div>
       </div>
     </div>

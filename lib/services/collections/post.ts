@@ -176,3 +176,13 @@ export async function refundCollection(id: number, refundedBy: number, reason?: 
 
   return collection || null
 }
+
+export async function getCollection(id: number) {
+  const [collection] = await db
+    .select()
+    .from(collectionsTable)
+    .where(eq(collectionsTable.id, id))
+    .limit(1)
+
+  return collection || null
+}
