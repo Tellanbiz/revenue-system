@@ -18,8 +18,15 @@ import { menuItems } from "./data"
 import { getCurrentUserForClient } from "@/lib/services/shared/utils"
 
 export function AppSidebar({ className }: { className?: string }) {
+  // Initialize with all expandable menu items expanded
+  const getAllExpandableItems = () => {
+    return menuItems
+      .filter(item => item.items && item.items.length > 0)
+      .map(item => item.title)
+  }
+
   const [activeItem, setActiveItem] = useState("Dashboard")
-  const [expandedItems, setExpandedItems] = useState<string[]>([])
+  const [expandedItems, setExpandedItems] = useState<string[]>(getAllExpandableItems())
   const [searchQuery, setSearchQuery] = useState("")
   const [currentUser, setCurrentUser] = useState<{
     name: string
@@ -63,28 +70,11 @@ export function AppSidebar({ className }: { className?: string }) {
 
   // Auto-expand parent items when their sub-items are active
   useEffect(() => {
-    const activeParentTitles: string[] = []
-
-    menuItems.forEach((item) => {
-      if (item.items) {
-        const hasActiveSubItem = item.items.some(
-          (sub) => pathname === sub.url || pathname.startsWith(sub.url + '/')
-        )
-        if (hasActiveSubItem) {
-          activeParentTitles.push(item.title)
-        }
-      }
-    })
-
-    if (activeParentTitles.length > 0) {
-      setExpandedItems((prev) => {
-        const newExpanded = [...new Set([...prev, ...activeParentTitles])]
-        return newExpanded
-      })
-    }
+    // All sections are always expanded, no need for dynamic expansion
   }, [pathname])
 
   const toggleExpanded = (itemTitle: string) => {
+    // Function kept for potential future use, but not currently used
     setExpandedItems((prev) =>
       prev.includes(itemTitle)
         ? prev.filter((item) => item !== itemTitle)
@@ -132,7 +122,6 @@ export function AppSidebar({ className }: { className?: string }) {
           <nav className="px-3 space-y-1">
             {filteredItems.map((item) => {
               const Icon = item.icon
-              const isExpanded = expandedItems.includes(item.title)
               const hasSubItems = item.items && item.items.length > 0
 
               // Simple active check: exact URL match for item or any sub-item
@@ -167,18 +156,9 @@ export function AppSidebar({ className }: { className?: string }) {
                       variant="ghost"
                       onClick={() => {
                         setActiveItem(item.title)
-                        if (hasSubItems) {
-                          // If not expanded, expand and navigate to first sub-item
-                          if (!isExpanded) {
-                            toggleExpanded(item.title)
-                            // Navigate to the first sub-item
-                            if (item.items && item.items.length > 0) {
-                              router.push(item.items[0].url)
-                            }
-                          } else {
-                            // If already expanded, just toggle (collapse)
-                            toggleExpanded(item.title)
-                          }
+                        if (hasSubItems && item.items && item.items.length > 0) {
+                          // Always navigate to the first sub-item since sections are always expanded
+                          router.push(item.items[0].url)
                         }
                       }}
                       className={cn(
@@ -197,16 +177,13 @@ export function AppSidebar({ className }: { className?: string }) {
                       <span className="flex-1 text-left">{item.title}</span>
                       {hasSubItems && (
                         <ChevronDown
-                          className={cn(
-                            "h-4 w-4 text-gray-500 transition-transform duration-200",
-                            isExpanded ? "rotate-180" : "rotate-0"
-                          )}
+                          className="h-4 w-4 text-gray-500 rotate-180"
                         />
                       )}
                     </Button>
                   )}
 
-                  {hasSubItems && isExpanded && (
+                  {hasSubItems && (
                     <div className="mt-1 space-y-0.5 ml-3 pl-3 border-l-2 border-gray-200">
                       {item.items?.map((subItem) => (
                         <Link key={subItem.title} href={subItem.url || '#'}>
