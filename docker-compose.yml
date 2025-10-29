@@ -6,11 +6,12 @@ services:
     container_name: revenue-ui
     ports:
       - "3012:3012"
+
     environment:
-      NEXT_DATABASE_URL: postgres://postgres:postgres@host.docker.internal:5432/revenue_system
+      NEXT_DATABASE_URL: postgres://postgres:postgres@localhost:5432/revenue_system
       JWT_SECRET: your-super-secret-jwt-key-here-change-this-inters
       NEXTAUTH_URL: http://localhost:3012
       NEXTAUTH_SECRET: another-random-secret-for-nextauth-sessions
+      
     restart: unless-stopped
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
+
