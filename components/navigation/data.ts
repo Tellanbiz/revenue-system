@@ -47,59 +47,25 @@ export const menuItems = [
       ]
     },
     {
-      title: "Permits & Licenses",
-      icon: FileText,
-      items: [
-        {
-          title: "Business Operating Permits",
-          url: "/dashboard/permits/business",
-        },
-        {
-          title: "Building Permits",
-          url: "/dashboard/permits/building",
-        },
-        {
-          title: "Sanitation / Property Fees",
-          url: "/dashboard/permits/sanitation",
-        },
-      ]
-    },
-    {
       title: "Revenue Distribution",
       icon: RotateCcw,
       items: [
         {
-          title: "Distribution Rules",
-          url: "/dashboard/distribution/rules",
-          description: "Define percentages to departments"
+          title: "Departments",
+          url: "/dashboard/distribution/departments",
+          description: "Manage departments for fund allocation"
         },
         {
-          title: "Automated Split View",
-          url: "/dashboard/distribution/split",
-          description: "See how funds were shared"
+          title: "Distributions",
+          url: "/dashboard/distribution",
+          description: "View allocated funds"
         },
         {
-          title: "Expenditure Overview",
-          url: "/dashboard/distribution/expenditure",
+          title: "Allocate Funds",
+          url: "/dashboard/distribution/allocate",
+          description: "Distribute reconciled collection funds"
         },
-      ]
-    },
-    {
-      title: "Payments Channel",
-      icon: CreditCard,
-      items: [
-        {
-          title: "Mobile Money (MoMo)",
-          url: "/dashboard/payments/momo",
-        },
-        {
-          title: "Bank / Card Payments",
-          url: "/dashboard/payments/bank",
-        },
-        {
-          title: "Transaction Logs",
-          url: "/dashboard/payments/logs",
-        },
+      
       ]
     },
     {
@@ -125,18 +91,8 @@ export const menuItems = [
       icon: Settings,
       items: [
         {
-          title: "Revenue Sources",
-          url: "/dashboard/setup/sources",
-          description: "Add new fee types"
-        },
-        {
           title: "Assemblies / Wards",
           url: "/dashboard/setup/assemblies",
-        },
-        {
-          title: "Integrations",
-          url: "/dashboard/setup/integrations",
-          description: "MoMo APIs, Bank APIs"
         },
         {
           title: "Settings",

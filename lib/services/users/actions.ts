@@ -6,6 +6,9 @@ import { getUsers, getCurrentUser as getCurrentUserFromDB } from "@/lib/services
 import { getAssemblies } from "@/lib/services/assemblies/get";
 import { authorizeUser } from "@/lib/services/users/post";
 
+// Re-export functions from other modules for convenience
+export { getUsers, createUser };
+
 export async function checkSystemStatus() {
   try {
     // Check if admin users exist

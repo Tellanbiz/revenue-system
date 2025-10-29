@@ -60,6 +60,19 @@ export async function createReconciliation(data: CreateReconciliationData) {
     .values(newReconciliation)
     .returning()
 
+  // If the reconciliation status is 'matched', update the collection to be reconciled
+  if (newReconciliation.status === 'matched') {
+    await db
+      .update(collectionsTable)
+      .set({
+        reconciled: true,
+        reconciled_at: newReconciliation.reconciled_at,
+        reconciled_by: newReconciliation.reconciled_by,
+        updated_at: new Date()
+      })
+      .where(eq(collectionsTable.id, data.collection_id))
+  }
+
   return reconciliation
 }
 
@@ -94,6 +107,19 @@ export async function updateReconciliation(id: number, data: UpdateReconciliatio
     .set(updateData)
     .where(eq(reconciliationTable.id, id))
     .returning()
+
+  // If the reconciliation status is 'matched', update the collection to be reconciled
+  if (data.status === 'matched' && reconciliation) {
+    await db
+      .update(collectionsTable)
+      .set({
+        reconciled: true,
+        reconciled_at: new Date(),
+        reconciled_by: reconciliation.reconciled_by,
+        updated_at: new Date()
+      })
+      .where(eq(collectionsTable.id, reconciliation.collection_id))
+  }
 
   return reconciliation || null
 }

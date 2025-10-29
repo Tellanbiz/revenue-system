@@ -3,3 +3,5 @@ export * from './users';
 export * from './collections';
 export * from './assemblies';
 export * from './revenue-sources';
+export * from './departments';
+export * from './distributions';

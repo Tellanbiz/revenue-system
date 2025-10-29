@@ -67,10 +67,9 @@ export default function ReconciliationLayout({ children }: ReconciliationLayoutP
         basePath="/dashboard/reconciliation/reconcile"
       />
 
-      <div className="container mx-auto px-6 py-4">
-        <div className="max-w-7xl mx-auto space-y-8">
-          {children}
-        </div>
+      <div className="">
+        {children}
+
       </div>
     </div>
   )

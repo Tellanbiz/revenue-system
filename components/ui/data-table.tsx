@@ -38,12 +38,16 @@ interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[]
   data: TData[]
   filters?: React.ReactNode
+  searchColumn?: string
+  searchPlaceholder?: string
 }
 
 export function DataTable<TData, TValue>({
   columns,
   data,
   filters,
+  searchColumn,
+  searchPlaceholder = "Filter...",
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([])
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
@@ -81,14 +85,16 @@ export function DataTable<TData, TValue>({
           </div>
         )}
         <div className="flex items-center justify-between">
-          <Input
-            placeholder="Filter collections..."
-            value={(table.getColumn("collection_number")?.getFilterValue() as string) ?? ""}
-            onChange={(event) =>
-              table.getColumn("collection_number")?.setFilterValue(event.target.value)
-            }
-            className="max-w-sm"
-          />
+          {searchColumn && (
+            <Input
+              placeholder={searchPlaceholder}
+              value={(table.getColumn(searchColumn)?.getFilterValue() as string) ?? ""}
+              onChange={(event) =>
+                table.getColumn(searchColumn)?.setFilterValue(event.target.value)
+              }
+              className="max-w-sm"
+            />
+          )}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" className="ml-auto">
