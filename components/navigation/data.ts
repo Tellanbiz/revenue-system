@@ -86,40 +86,40 @@ export const menuItems = [
         },
       ]
     },
-    {
-      title: "System Setup",
-      icon: Settings,
-      items: [
-        {
-          title: "Assemblies / Wards",
-          url: "/dashboard/setup/assemblies",
-        },
-        {
-          title: "Settings",
-          url: "/dashboard/setup/settings",
-        },
-      ]
-    },
-    {
-      title: "Reports",
-      icon: TrendingUp,
-      items: [
-        {
-          title: "Daily Collection Report",
-          url: "/dashboard/reports/daily",
-        },
-        {
-          title: "Revenue by Assembly",
-          url: "/dashboard/reports/assembly",
-        },
-        {
-          title: "Top Collectors",
-          url: "/dashboard/reports/collectors",
-        },
-        {
-          title: "Distribution Summary",
-          url: "/dashboard/reports/distribution",
-        },
-      ]
-    },
+    // {
+    //   title: "System Setup",
+    //   icon: Settings,
+    //   items: [
+    //     {
+    //       title: "Assemblies / Wards",
+    //       url: "/dashboard/setup/assemblies",
+    //     },
+    //     {
+    //       title: "Settings",
+    //       url: "/dashboard/setup/settings",
+    //     },
+    //   ]
+    // },
+    // {
+    //   title: "Reports",
+    //   icon: TrendingUp,
+    //   items: [
+    //     {
+    //       title: "Daily Collection Report",
+    //       url: "/dashboard/reports/daily",
+    //     },
+    //     {
+    //       title: "Revenue by Assembly",
+    //       url: "/dashboard/reports/assembly",
+    //     },
+    //     {
+    //       title: "Top Collectors",
+    //       url: "/dashboard/reports/collectors",
+    //     },
+    //     {
+    //       title: "Distribution Summary",
+    //       url: "/dashboard/reports/distribution",
+    //     },
+    //   ]
+    // },
   ]
