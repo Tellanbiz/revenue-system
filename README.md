@@ -12,8 +12,6 @@ yarn dev
 pnpm dev
 # or
 bun dev
-
-git clone https://x-token-auth:ATCTT3xFfGN053U3kBQTfc2ISVnYy4xRhwOkojJmAjAAX0cMc3SUXaMIxXG9oK6eVTaeRHBVp_XwK3noSQZIHaxqaq5d80ayNexCQa_XqX6XualS30dLeAcLpACDMXtnAPbxWEejTB6ggIZ7GUjJaBCqrbAuXbwf2WZO1RDI2MyyBgn0C5YyBfs=DFF1E62B@bitbucket.org/itvaloredger/revenue-system.git
 ```
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
